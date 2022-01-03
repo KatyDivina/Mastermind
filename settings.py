@@ -8,7 +8,7 @@ handlers = [file_handler, stdout_handler]
 logging.basicConfig(
     handlers=handlers,
     level=logging.INFO,
-    format="\n%(asctime)s | %(levelname)s | %(message)s",
+    format="%(asctime)s | %(levelname)s | %(message)s",
     datefmt="%Y.%m.%d %H:%M:%S",
 )
 
