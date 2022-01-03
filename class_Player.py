@@ -116,7 +116,6 @@ class Player:
                 )
 
                 self.attempts_counter = cur.fetchone()[0]
-                print(f"{self.attempts_counter=}")
 
             except BaseException:
 
