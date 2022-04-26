@@ -1,7 +1,8 @@
-from config import db
+import os
+
 from settings import *
 from aiogram import types
-
+import psycopg2
 
 from random import shuffle
 from datetime import datetime, timedelta
@@ -9,6 +10,19 @@ import pytz
 
 
 # POSTGRESQL
+user = os.getenv('PG_USER')
+password = os.getenv('PG_PASSWORD')
+host = os.getenv('PG_HOST')
+port = os.getenv('PG_PORT')
+database = os.getenv('PG_DATABASE')
+
+
+
+db = psycopg2.connect(user=user,
+                      password=password,
+                      host=host,
+                      port=port,
+                      database=database)
 cur = db.cursor()
 
 
