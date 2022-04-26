@@ -1,7 +1,8 @@
-from config import db
+import os
+
 from settings import *
 from aiogram import types
-
+import psycopg2
 
 from random import shuffle
 from datetime import datetime, timedelta
@@ -9,6 +10,19 @@ import pytz
 
 
 # POSTGRESQL
+user = os.getenv('PG_USER')
+password = os.getenv('PG_PASSWORD')
+host = os.getenv('PG_HOST')
+port = os.getenv('PG_PORT')
+database = os.getenv('PG_DATABASE')
+
+
+
+db = psycopg2.connect(user=user,
+                      password=password,
+                      host=host,
+                      port=port,
+                      database=database)
 cur = db.cursor()
 
 
@@ -58,7 +72,8 @@ class Player:
         self.game_id = None
 
         #    ---SCORE---
-        cur.execute(f"""SELECT best_score FROM users WHERE user_id = {self.id};""")
+        cur.execute(
+            f"""SELECT best_score FROM users WHERE user_id = {self.id};""")
         self.best_score = cur.fetchone()[0]
 
     async def start_game(self, m):
@@ -75,7 +90,10 @@ class Player:
         db.commit()
 
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(types.InlineKeyboardButton(text="Помощь", callback_data="rules"))
+        keyboard.add(
+            types.InlineKeyboardButton(
+                text="Помощь",
+                callback_data="rules"))
 
         await m.answer("😈")
         await m.answer(
@@ -111,7 +129,7 @@ class Player:
                 self.game_id, self.password = cur.fetchone()
 
                 cur.execute(
-                    f"""SELECT count(attempt_id) FROM attempts 
+                    f"""SELECT count(attempt_id) FROM attempts
                     WHERE game_id = {self.game_id};"""
                 )
 
@@ -227,8 +245,8 @@ class Player:
 
     async def show_my_top(self, m):
         cur.execute(
-            f"""SELECT attempts_counter, pass FROM games 
-            WHERE attempts_counter >0 AND user_id = {self.id}  
+            f"""SELECT attempts_counter, pass FROM games
+            WHERE attempts_counter >0 AND user_id = {self.id}
             ORDER BY attempts_counter LIMIT 10;"""
         )
 
@@ -254,8 +272,7 @@ class Player:
                 ON games.user_id = users.user_id
                 WHERE games.end_game IS NOT NULL
                 ORDER BY attempts_counter
-                LIMIT 10;"""
-        )
+                LIMIT 10;""")
 
         message = "🏆 TOP 🏆\n"
 
