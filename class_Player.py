@@ -16,8 +16,6 @@ host = os.getenv('PG_HOST')
 port = os.getenv('PG_PORT')
 database = os.getenv('PG_DATABASE')
 
-
-
 db = psycopg2.connect(user=user,
                       password=password,
                       host=host,
