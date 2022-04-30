@@ -1,33 +1,22 @@
 import os
 
-from settings import *
 from aiogram import types
-import psycopg2
-
+from datetime import datetime
+from pytz import timezone
+from psycopg2 import connect
 from random import shuffle
-from datetime import datetime, timedelta
-import pytz
+
+from settings import *
 
 
 # POSTGRESQL
-user = os.getenv('PG_USER')
-password = os.getenv('PG_PASSWORD')
-host = os.getenv('PG_HOST')
-port = os.getenv('PG_PORT')
-database = os.getenv('PG_DATABASE')
 
 
 
-db = psycopg2.connect(user=user,
-                      password=password,
-                      host=host,
-                      port=port,
-                      database=database)
-cur = db.cursor()
 
 
 def now_time():
-    updated_time = datetime.now(pytz.timezone("Europe/Moscow"))
+    updated_time = datetime.now(timezone("Europe/Moscow"))
     return updated_time.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -45,55 +34,80 @@ def att_ending(attempts_counter, case="Р"):
 
 
 class Player:
-    def __init__(self, chat):
-        #    ---DATABASE---
-        cur.execute(f"""SELECT * FROM users WHERE user_id = {chat.id};""")
-        if not cur.fetchone():  # Если игрока нет в бд, то добавляем туда
-            cur.execute(
-                f"""INSERT INTO users VALUES
-                ({chat.id},
-                '{chat.first_name}',
-                '{chat.last_name}',
-                '{chat.username}',
-                '{now_time()}',
-                1000);"""
-            )
-            db.commit()
 
-        #    ---USER---
+    class Game:
+        def __init__(self):
+            self.password = ""
+            self.attempts_counter = 0
+            self.id = None
+
+    class Database:
+        def __init__(self):
+            self.user = os.getenv("PG_USER")
+            self.password = os.getenv("PG_PASSWORD")
+            self.host = os.getenv("PG_HOST")
+            self.port = os.getenv("PG_PORT")
+            self.database = os.getenv("PG_DATABASE")
+            self.db = connect(user=self.user, password=self.password, host=self.host, port=self.port, database=self.database)
+            self.cur = self.db.cursor()
+
+        def get_best_score(self, id):
+            self.cur.execute(f"""SELECT best_score FROM users WHERE user_id = {id};""")
+            return self.cur.fetchone()[0]
+
+        def get_player_from_dp(self, chat_id):
+            self.cur.execute(f"""SELECT * FROM users WHERE user_id = {chat_id};""")
+            return self.cur.fetchone()
+
+        def add_player_in_db(self, chat):
+            self.cur.execute(
+                f"""INSERT INTO users VALUES
+                    ({chat.id},
+                    '{chat.first_name}',
+                    '{chat.last_name}',
+                    '{chat.username}',
+                    '{now_time()}',
+                    1000);"""
+            )
+            self.db.commit()
+
+    def __init__(self, chat):
+        self.db = Player.Database()
+        if not self.get_player_from_dp(chat.id):
+            self.add_player_in_db(chat)
+
         self.id = chat.id
         self.first_name = chat.first_name
         self.username = chat.username
         self.last_name = chat.last_name
 
-        #    ---GAME---
-        self.password = ""
-        self.attempts_counter = 0
-        self.game_id = None
+        self.game = Player.Game()
+        self.best_score = self.db.get_best_score()
 
-        #    ---SCORE---
+
+
+
+
+
+
+    async def add_new_game_in_db(self, m):
         cur.execute(
-            f"""SELECT best_score FROM users WHERE user_id = {self.id};""")
-        self.best_score = cur.fetchone()[0]
+            f"""INSERT INTO games(user_id, pass )
+                     VALUES
+                     ({self.id},
+                     '{self.password}')
+                     RETURNING game_id;"""
+        )
+        self.game.id = cur.fetchone()[0]
+        db.commit()
 
     async def start_game(self, m):
         await self._passw_generator()
 
-        cur.execute(
-            f"""INSERT INTO games(user_id, pass )
-                VALUES
-                ({self.id},
-                '{self.password}')
-                RETURNING game_id;"""
-        )
-        self.game_id = cur.fetchone()[0]
-        db.commit()
+
 
         keyboard = types.InlineKeyboardMarkup(row_width=1)
-        keyboard.add(
-            types.InlineKeyboardButton(
-                text="Помощь",
-                callback_data="rules"))
+        keyboard.add(types.InlineKeyboardButton(text="Помощь", callback_data="rules"))
 
         await m.answer("😈")
         await m.answer(
@@ -272,7 +286,8 @@ class Player:
                 ON games.user_id = users.user_id
                 WHERE games.end_game IS NOT NULL
                 ORDER BY attempts_counter
-                LIMIT 10;""")
+                LIMIT 10;"""
+        )
 
         message = "🏆 TOP 🏆\n"
 
