@@ -1,7 +1,8 @@
-from class_Player import *
-from aiogram import Bot, Dispatcher, executor, types
 import os
+from aiogram import Bot, Dispatcher, executor, types
+from class_Player import Player
 
+from settings import *
 
 bot = Bot(token=os.getenv("TOKEN"))
 dp = Dispatcher(bot)
